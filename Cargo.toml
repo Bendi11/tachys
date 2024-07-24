@@ -1,0 +1,14 @@
+[workspace]
+resolver = "2"
+members = [
+    "tachys-sym",
+    "tachys-ui"
+]
+
+[workspace.dependencies]
+
+[profile.release]
+lto = true
+
+[profile.dev.package."*"]
+opt-level = 3
