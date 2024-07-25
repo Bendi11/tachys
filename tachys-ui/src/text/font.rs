@@ -74,9 +74,6 @@ impl FontCache {
         let mut loaded = 0;
 
         for font in fonts.fonts() {
-            if font.offset != 0 {
-                log::info!("Got font {}", font.offset);
-            }
             let Some(family) = font.localized_strings().find_by_id(swash::StringId::Family, None) else {
                 log::warn!("Failed to retrieve font family for font loaded from {}", font_path.display());
                 continue
