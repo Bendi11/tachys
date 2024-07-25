@@ -1,29 +1,24 @@
 use memmap2::Mmap;
-use swash::{FontDataRef, FontRef};
+use swash::FontDataRef;
 use thiserror::Error;
 use walkdir::WalkDir;
-use std::{collections::{BTreeMap, HashMap}, fs::File, path::{Path, PathBuf}, rc::Rc};
+use std::{collections::BTreeMap, fs::File, path::{Path, PathBuf}, rc::Rc};
 
-use slab::Slab;
 
 #[derive(Debug, Clone,)]
 struct FontCacheEntry {
     pub family: String,
     pub attributes: swash::Attributes,
-    pub path: PathIndex,
+    pub path: PathBuf,
     pub offset: u32,
     pub data: Option<Rc<[u8]>>,
 }
 
-#[derive(Debug, Clone, Copy, Hash, PartialEq, Eq)]
-struct PathIndex(pub usize);
 
 /// Cache created by scanning the available .otf and .ttf files on a machine used to lookup fonts
 /// by name and features
 #[derive(Debug,)]
 pub struct FontCache {
-    paths: Slab<PathBuf>,
-    loaded: HashMap<PathIndex, Rc<[u8]>>,
     map: BTreeMap<swash::CacheKey, FontCacheEntry>,
 }
 
@@ -31,8 +26,6 @@ impl FontCache {
     /// Create a new empty font cache with no stored fonts
     pub fn new() -> Self {
         Self {
-            paths: Slab::new(),
-            loaded: HashMap::new(),
             map: BTreeMap::new(),
         }
     }
@@ -50,7 +43,7 @@ impl FontCache {
             let entry = entry?; 
             let path = entry.path();
             if path.extension().map(|e| e.eq_ignore_ascii_case("ttf") || e.eq_ignore_ascii_case("otf")) == Some(true) {
-                if self.paths.iter().find(|(_, p)| **p == path).is_none() {
+                if self.map.iter().find(|(_, p)| p.path == path).is_none() {
                     font_count += match self.index(path) {
                         Ok(count) => count,
                         Err(e) => {
@@ -62,7 +55,7 @@ impl FontCache {
             }
         }
 
-        log::info!("Loaded {} fonts from directory {}, size: {}", font_count, dir.as_ref().display(), self.map.len() * std::mem::size_of::<FontCacheEntry>() + self.paths.iter().map(|p| p.1.capacity()).sum::<usize>());
+        log::info!("Loaded {} fonts from directory {}, size: {}", font_count, dir.as_ref().display(), self.map.len() * std::mem::size_of::<FontCacheEntry>());
 
         Ok(font_count)
     }
@@ -73,7 +66,6 @@ impl FontCache {
         let font_path = font_path.to_owned();
 
         let file = File::open(&font_path)?;
-        let font_path_index = PathIndex(self.paths.insert(font_path.clone()));
 
         let buf = unsafe { Mmap::map(&file) }?;
 
@@ -82,6 +74,9 @@ impl FontCache {
         let mut loaded = 0;
 
         for font in fonts.fonts() {
+            if font.offset != 0 {
+                log::info!("Got font {}", font.offset);
+            }
             let Some(family) = font.localized_strings().find_by_id(swash::StringId::Family, None) else {
                 log::warn!("Failed to retrieve font family for font loaded from {}", font_path.display());
                 continue
@@ -98,7 +93,7 @@ impl FontCache {
             let entry = FontCacheEntry {
                 family,
                 attributes: font.attributes(),
-                path: font_path_index,
+                path: font_path.clone(),
                 offset: font.offset,
                 data: None,
             };
