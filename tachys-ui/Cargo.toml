@@ -7,8 +7,7 @@ edition = "2021"
 winit = { version = "0.30", default-features = false, features = ["x11", "rwh_06"] }
 softbuffer = "0.4"
 tiny-skia = { version = "0.11", default-features = false, features = ["std", "simd"] }
-
-swash = { version = "0.1", default-features = false }
+allsorts = { version = "0.15" }
 
 slab = "0.4"
 

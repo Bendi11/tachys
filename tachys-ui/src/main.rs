@@ -1,8 +1,7 @@
 use log::Level;
-use text::font::FontCache;
 
 mod app;
-mod text;
+mod editor;
 
 struct Logger;
 
@@ -33,18 +32,10 @@ fn main() {
     if let Err(e) = log::set_logger(&LOG) {
         eprintln!("Failed to set logger: {}", e);
     }
-    
-    let start = std::time::SystemTime::now();
-    let mut cache = FontCache::new();
-    if let Err(e) = cache.index_dir(&dirs_2::font_dir().unwrap()).and_then(|_| cache.index_dir("/usr/share/fonts")) {
-        log::error!("Failed to index font directory: {}", e);
-    }
 
-    let end = std::time::SystemTime::now();
-    let dur = end.duration_since(start).unwrap();
-    log::info!("Loaded fonts in {}ms", dur.as_millis());
 
-    if let Err(e) = app::App::run() {
+    if let Err(e) = app::run() {
         log::error!("Failed to run event loop: {e}");
     }
 }
+
