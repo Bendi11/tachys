@@ -1,4 +1,4 @@
-use allsorts::{binary::read::ReadScope, cff::CFF, context::Glyph, gpos::Placement, gsub::{FeatureMask, Features, GlyphOrigin, RawGlyph}, outline::{OutlineBuilder, OutlineSink}, pathfinder_geometry::{line_segment::LineSegment2F, vector::Vector2F}, tables::{glyf::GlyfTable, loca::LocaTable, FontTableProvider, HmtxTable}, tag};
+use allsorts::{binary::read::ReadScope, cff::CFF, context::Glyph, glyph_info, glyph_position::{GlyphLayout, TextDirection}, gpos::Placement, gsub::{FeatureMask, Features, GlyphOrigin, RawGlyph}, outline::{OutlineBuilder, OutlineSink}, pathfinder_geometry::{line_segment::LineSegment2F, vector::Vector2F}, tables::{glyf::GlyfTable, loca::LocaTable, FontTableProvider, HmtxTable}, tag};
 use font::{FontCache, FontStorage};
 use tiny_skia::{Color, FillRule, Mask, Paint, Path, PathBuilder, Pixmap, PixmapMut, Shader, Stroke, Transform};
 
@@ -20,35 +20,33 @@ impl<'s> Editor<'s> {
     }
 
     pub fn paint(&mut self, buf: &mut Pixmap, mask: &mut Mask) {
-        let font = self.font_cache.font();
+        let mut font = self.font_cache.font();
+        if font.is_variable() {
+            log::error!("Variable font");
+        }
 
-        let glyphs = font.map_glyphs("ζ Testing the Font", allsorts::tag::LATN, allsorts::font::MatchingPresentation::NotRequired);
 
-        let shapes = font.shape(glyphs, allsorts::tag::LATN, Some(allsorts::tag::DFLT), &Features::Mask(FeatureMask::all()), None, true).unwrap();
-        let hmtx_data = font.font_table_provider.read_table_data(tag::HMTX).unwrap();
-        let hmtx = ReadScope::new(&hmtx_data).read_dep::<HmtxTable<'_>>((
-            font.maxp_table.num_glyphs as usize,
-            font.hhea_table.num_h_metrics as usize
-        )).unwrap();
+        let glyphs = font.map_glyphs("Testing the font", allsorts::tag::LATN, allsorts::font::MatchingPresentation::NotRequired);
 
-        let cff = font.font_table_provider.read_table_data(tag::LOCA).unwrap();
-        let loca = ReadScope::new(&cff).read_dep::<LocaTable<'_>>((font.maxp_table.num_glyphs as usize, font.head_table().unwrap().unwrap().index_to_loc_format)).unwrap();
+        let shapes = font.shape(glyphs, allsorts::tag::LATN, Some(allsorts::tag::DFLT), &Features::Mask(FeatureMask::empty()), None, true).unwrap();
+       
+        let hmtx_table = font.font_table_provider.read_table_data(tag::HMTX).unwrap();
+
+        let loca_data = font.font_table_provider.read_table_data(tag::LOCA).unwrap();
+        let loca = ReadScope::new(&loca_data).read_dep::<LocaTable<'_>>((font.maxp_table.num_glyphs as usize, font.head_table().unwrap().unwrap().index_to_loc_format)).unwrap();
 
         let glyf_data = font.font_table_provider.read_table_data(tag::GLYF).unwrap();
         let mut glyf = ReadScope::new(&glyf_data).read_dep::<GlyfTable<'_>>(&loca).unwrap();
         
-        let mut placement = Vector2F::zero();
-        for shape in shapes {
-            let mut builder = PathBuilder::new();
-            
-            placement.set_x(placement.x() + hmtx.horizontal_advance(shape.get_glyph_index()).unwrap() as f32); 
-            log::info!("Position is {:?}", shape.placement);
-
-            if shape.kerning != 0 {
-                log::info!("Got kerning {}!", shape.kerning);
+        let mut advance = 0f32;
+        for shape in shapes.into_iter() {
+            if !matches!(shape.placement, Placement::None) {
+                log::error!("Unsupported placement {:?}", shape.placement);
             }
-
+            let builder = PathBuilder::new();
+            
             let mut outline = TinySkiaOutlineVisitor::new(builder);
+            let glyph_advance = glyph_info::advance(&font.maxp_table, &font.hhea_table, &hmtx_table, shape.get_glyph_index()).unwrap();
 
             outline.render_glyphs(&mut glyf, &[shape.glyph]).unwrap();
             if let Some(path) = outline.finish() {
@@ -57,10 +55,12 @@ impl<'s> Editor<'s> {
                     &path,
                     &Paint { shader: Shader::SolidColor(Color::BLACK), anti_alias: true, force_hq_pipeline: true, ..Default::default() },
                     FillRule::EvenOdd,
-                    Transform::from_scale(0.5, -0.5).post_translate(0., (buf.height() - 500) as f32).pre_translate(placement.x(), 0.),
+                    Transform::from_scale(0.05, -0.05).post_translate(0., (buf.height() - 300) as f32).pre_translate(advance as f32, 0.),
                     None
                 );
             }
+
+            advance += glyph_advance as f32;
         }
     }
 }

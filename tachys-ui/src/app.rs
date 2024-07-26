@@ -34,7 +34,7 @@ pub fn run() -> Result<(), EventLoopError> {
     ev.set_control_flow(winit::event_loop::ControlFlow::Wait);
 
     
-    if let Err(e) = app.editor.font_cache.load(&mut store, "/usr/share/fonts/TTF/FiraCodeNerdFontPropo-Medium.ttf") {
+    if let Err(e) = app.editor.font_cache.load(&mut store, "/usr/share/fonts/TTF/DejaVuSans.ttf") {
         log::error!("Failed to load font: {e}");
     }
     
