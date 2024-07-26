@@ -15,12 +15,12 @@ struct TinySkiaOutlineVisitor(PathBuilder);
 impl<'s> Editor<'s> {
     pub fn new() -> Self {
         Self {
-            font_cache: FontCache::new()
+            font_cache: FontCache::default()
         }
     }
 
     pub fn paint(&mut self, buf: &mut Pixmap, mask: &mut Mask) {
-        let mut font = self.font_cache.font();
+        /*let mut font = self.font_cache.font();
         if font.is_variable() {
             log::error!("Variable font");
         }
@@ -61,7 +61,7 @@ impl<'s> Editor<'s> {
             }
 
             advance += glyph_advance as f32;
-        }
+        }*/
     }
 }
 
