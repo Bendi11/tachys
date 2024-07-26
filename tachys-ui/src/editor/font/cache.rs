@@ -1,13 +1,15 @@
 
-use allsorts::{binary::read::ReadScope, font_data::{DynamicFontTableProvider, FontData}, tables::{self, FontTableProvider, NameTable, OpenTypeData, OpenTypeFont}, tag, woff2, Font};
+use std::borrow::Cow;
+
+use allsorts::{binary::read::ReadScope, font_data::{DynamicFontTableProvider, FontData}, tables::{self, FontTableProvider, HmtxTable, NameTable, OpenTypeData, OpenTypeFont}, tag, woff2, Font};
 use slotmap::SlotMap;
 
 use super::FontError;
 
 
 pub struct CachedFont<'s> {
-    pub name: String,
-    font: Font<DynamicFontTableProvider<'s>>,
+    pub family: String,
+    pub font: Font<DynamicFontTableProvider<'s>>,
 }
 
 slotmap::new_key_type! {
@@ -48,6 +50,24 @@ impl<'s> FontCache<'s> {
 
         Ok(fonts_count)
     }
+    
+    /// Search the currently loaded fonts for one with a matching font family
+    pub fn search(&self, family: &str) -> Option<FontId> {
+        self
+            .loaded
+            .iter()
+            .find_map(|(k, v)| v.family.trim().eq_ignore_ascii_case(family.trim()).then_some(k))
+    }
+    
+    /// Get the loaded font data corresponding to the given font ID
+    pub fn get<'a>(&'a self, id: FontId) -> &'a CachedFont<'s> {
+        &self.loaded[id]
+    }
+    
+    /// Get a mutable reference to the font data for the given font ID
+    pub fn get_mut<'a>(&'a mut self, id: FontId) -> &'a mut CachedFont<'s> {
+        &mut self.loaded[id]
+    }
 }
 
 impl<'s> CachedFont<'s> {
@@ -58,15 +78,14 @@ impl<'s> CachedFont<'s> {
         let name_buf = font.font_table_provider.read_table_data(tag::NAME)?;
         let name_tbl = ReadScope::new(&name_buf).read::<NameTable::<'_>>()?;
 
-        let name = name_tbl.string_for_id(NameTable::FULL_FONT_NAME)
-            .or_else(|| name_tbl.string_for_id(NameTable::FONT_FAMILY_NAME))
-            .or_else(|| name_tbl.string_for_id(NameTable::TYPOGRAPHIC_FAMILY_NAME))
+        let family = name_tbl.string_for_id(NameTable::FONT_FAMILY_NAME)
             .unwrap_or_else(|| "UNKNOWN FONT".to_owned());
 
-        log::info!("Loaded font {}", name);
+
+        log::info!("Loaded font {}", family);
 
         Ok(Self {
-            name,
+            family,
             font,
         })
     }

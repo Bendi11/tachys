@@ -42,6 +42,8 @@ pub fn run() -> Result<(), EventLoopError> {
             log::error!("Failed to load font: {e}");
         }
     }
+
+    app.editor.selected_font = app.editor.font_cache.search("DejaVu Sans");
     
     ev.run_app(&mut app)
 }

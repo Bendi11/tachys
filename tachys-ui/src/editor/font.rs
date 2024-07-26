@@ -2,11 +2,8 @@ mod cache;
 mod store;
 
 pub use store::FontStorage;
-pub use cache::FontCache;
+pub use cache::{FontCache, FontId};
 
-pub struct FontIdentifier {
-    
-}
 
 
 #[derive(Debug, thiserror::Error)]

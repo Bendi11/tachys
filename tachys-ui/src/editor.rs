@@ -1,5 +1,5 @@
 use allsorts::{binary::read::ReadScope, cff::CFF, context::Glyph, glyph_info, glyph_position::{GlyphLayout, TextDirection}, gpos::Placement, gsub::{FeatureMask, Features, GlyphOrigin, RawGlyph}, outline::{OutlineBuilder, OutlineSink}, pathfinder_geometry::{line_segment::LineSegment2F, vector::Vector2F}, tables::{glyf::GlyfTable, loca::LocaTable, FontTableProvider, HmtxTable}, tag};
-use font::{FontCache, FontStorage};
+use font::{FontCache, FontId, FontStorage};
 use tiny_skia::{Color, FillRule, Mask, Paint, Path, PathBuilder, Pixmap, PixmapMut, Shader, Stroke, Transform};
 
 mod rope;
@@ -7,6 +7,7 @@ pub mod font;
 
 pub struct Editor<'s> {
     pub font_cache: FontCache<'s>,
+    pub selected_font: Option<FontId>,
 }
 
 #[derive(Default)]
@@ -15,12 +16,15 @@ struct TinySkiaOutlineVisitor(PathBuilder);
 impl<'s> Editor<'s> {
     pub fn new() -> Self {
         Self {
-            font_cache: FontCache::default()
+            font_cache: FontCache::default(),
+            selected_font: None,
         }
     }
 
     pub fn paint(&mut self, buf: &mut Pixmap, mask: &mut Mask) {
-        /*let mut font = self.font_cache.font();
+        let Some(selected_font) = self.selected_font else { return };
+        let cached = self.font_cache.get_mut(selected_font);
+        let font = &mut cached.font;
         if font.is_variable() {
             log::error!("Variable font");
         }
@@ -61,7 +65,7 @@ impl<'s> Editor<'s> {
             }
 
             advance += glyph_advance as f32;
-        }*/
+        }
     }
 }
 
