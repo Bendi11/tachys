@@ -19,7 +19,7 @@ pub struct App<'s> {
 
 /// Create a winit event loop and run the GUI application to completion
 pub fn run() -> Result<(), EventLoopError> {
-    let mut store = FontStorage::new();
+    let store = FontStorage::new();
     
     let mut app = App {
         window: None,
@@ -32,16 +32,16 @@ pub fn run() -> Result<(), EventLoopError> {
     
     let ev = EventLoop::new()?;
     ev.set_control_flow(winit::event_loop::ControlFlow::Wait);
-    
-    match store.load("/usr/share/fonts/TTF/DejaVuSans.ttf") {
-        Ok(buf) => match app.editor.font_cache.load(buf) {
-            Ok(id) => log::info!("Loaded font {}" , id),
-            Err(e) => log::error!("Failed to load font: {e}"),
-        },
-        Err(e) => {
-            log::error!("Failed to load font: {e}");
-        }
+
+    if let Err(e) = app.editor.font_cache.open(&store, "/usr/share/fonts/TTF/DejaVuSans.ttf") {
+        log::error!("Failed to load font: {e}");
     }
+
+    if let Err(e) = app.editor.font_cache.open(&store, "/usr/share/fonts/TTF/FiraCodeNerdFont-Medium.ttf") {
+        log::error!("Failed to load font: {e}");
+    }
+    
+
 
     app.editor.selected_font = app.editor.font_cache.search("DejaVu Sans", None).next();
     

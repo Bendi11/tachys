@@ -2,6 +2,7 @@
 resolver = "2"
 members = [
     "tachys-sym",
+    "tachys-document",
     "tachys-ui"
 ]
 

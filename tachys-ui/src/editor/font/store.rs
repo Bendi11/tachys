@@ -1,17 +1,13 @@
 
-use std::{borrow::Cow, fs::File, io::Read};
+use std::{borrow::Cow, fs::File, io::Read, path::PathBuf, rc::Rc};
 
 use memmap2::Mmap;
+use once_map::OnceMap;
 
 use super::FontError;
 
-/// Structure held for each loaded font file maintaining either a memory-mapped file handle or an
-/// in-memory buffer
-struct FontBuffer {
-    storage: FontBufferStorage,
-}
 
-enum FontBufferStorage {
+enum FontBuffer {
     Map(Mmap),
     Memory(Cow<'static, [u8]>),
 }
@@ -20,7 +16,7 @@ enum FontBufferStorage {
 /// [FontCache](super::cache::FontCache) can maintain references to font data.
 #[derive(Default)]
 pub struct FontStorage {
-    loaded: Vec<FontBuffer>,
+    loaded: OnceMap<PathBuf, Rc<FontBuffer>>,
 }
 
 impl FontStorage {
@@ -31,13 +27,14 @@ impl FontStorage {
 
     /// Load a file from the given path and return a reference to its contents
     pub fn load<'a, P: AsRef<std::path::Path>>(
-        &'a mut self,
+        &'a self,
         path: P,
     ) -> Result<&'a [u8], FontError> {
-        let mut file = File::open(path)?;
+        let path = path.as_ref().to_owned();
+        let mut file = File::open(&path)?;
 
         let storage = match unsafe { Mmap::map(&file) } {
-            Ok(map) => FontBufferStorage::Map(map),
+            Ok(map) => FontBuffer::Map(map),
             Err(e) => match e.kind() {
                 std::io::ErrorKind::Unsupported => {
                     log::info!("Memory mapping unsupported, falling back to in-memory buffer");
@@ -46,26 +43,23 @@ impl FontStorage {
                         file.metadata().map(|m| m.len() as usize).unwrap_or(65536),
                     );
                     file.read_to_end(&mut buf)?;
-                    FontBufferStorage::Memory(Cow::from(buf))
+                    FontBuffer::Memory(Cow::from(buf))
                 }
                 _ => return Err(e.into()),
             },
         };
 
-        let buffer = FontBuffer { storage };
+        let buf = self.loaded.insert(path, move |_| Rc::from(storage));
 
-        self.loaded.push(buffer);
-
-        Ok(self.loaded.last().unwrap().storage.as_ref())
+        Ok(buf.as_ref())
     }
 }
 
-impl AsRef<[u8]> for FontBufferStorage {
-    fn as_ref(&self) -> &[u8] {
+impl AsRef<[u8]> for FontBuffer {
+    fn as_ref<'a>(&'a self) -> &'a [u8] {
         match self {
             Self::Map(map) => map.as_ref(),
             Self::Memory(cow) => cow.as_ref(),
         }
     }
 }
-
