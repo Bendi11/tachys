@@ -35,7 +35,7 @@ pub fn run() -> Result<(), EventLoopError> {
     
     match store.load("/usr/share/fonts/TTF/DejaVuSans.ttf") {
         Ok(buf) => match app.editor.font_cache.load(buf) {
-            Ok(count) => log::info!("Loaded {} fonts" , count),
+            Ok(id) => log::info!("Loaded font {}" , id),
             Err(e) => log::error!("Failed to load font: {e}"),
         },
         Err(e) => {
@@ -43,7 +43,7 @@ pub fn run() -> Result<(), EventLoopError> {
         }
     }
 
-    app.editor.selected_font = app.editor.font_cache.search("DejaVu Sans");
+    app.editor.selected_font = app.editor.font_cache.search("DejaVu Sans", None).next();
     
     ev.run_app(&mut app)
 }

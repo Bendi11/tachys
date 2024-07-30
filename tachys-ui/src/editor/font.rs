@@ -1,5 +1,5 @@
-mod cache;
 mod store;
+mod cache;
 
 pub use store::FontStorage;
 pub use cache::{FontCache, FontId};
@@ -10,8 +10,8 @@ pub use cache::{FontCache, FontId};
 pub enum FontError {
     #[error("IO error: {0}")]
     IO(#[from] std::io::Error),
-    #[error("Failed to parse font: {0}")]
-    ParseFont(#[from] allsorts::error::ParseError),
-    #[error("Read error when indexing font: {0}")]
-    ReadFont(#[from] allsorts::error::ReadWriteError),
+    #[error("Failed to read font: {0}")]
+    Parse(#[from] skrifa::outline::error::ReadError),
+    #[error("No font family name located")]
+    NoFamilyName,
 }
