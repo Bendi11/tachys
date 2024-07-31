@@ -1,11 +1,9 @@
-
 use std::{borrow::Cow, fs::File, io::Read, path::PathBuf, rc::Rc};
 
 use memmap2::Mmap;
 use once_map::OnceMap;
 
 use super::FontError;
-
 
 enum FontBuffer {
     Map(Mmap),
@@ -26,10 +24,7 @@ impl FontStorage {
     }
 
     /// Load a file from the given path and return a reference to its contents
-    pub fn load<'a, P: AsRef<std::path::Path>>(
-        &'a self,
-        path: P,
-    ) -> Result<&'a [u8], FontError> {
+    pub fn load<'a, P: AsRef<std::path::Path>>(&'a self, path: P) -> Result<&'a [u8], FontError> {
         let path = path.as_ref().to_owned();
         let mut file = File::open(&path)?;
 

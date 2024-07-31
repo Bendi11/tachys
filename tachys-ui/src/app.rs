@@ -3,7 +3,11 @@ use std::{num::NonZero, rc::Rc};
 use softbuffer::Surface;
 use tiny_skia::{Color, Mask, Pixmap};
 use winit::{
-    application::ApplicationHandler, error::EventLoopError, event::WindowEvent, event_loop::{ActiveEventLoop, EventLoop}, window::{Window, WindowAttributes, WindowId}
+    application::ApplicationHandler,
+    error::EventLoopError,
+    event::WindowEvent,
+    event_loop::{ActiveEventLoop, EventLoop},
+    window::{Window, WindowAttributes, WindowId},
 };
 
 use crate::editor::{font::FontStorage, Editor};
@@ -20,7 +24,7 @@ pub struct App<'s> {
 /// Create a winit event loop and run the GUI application to completion
 pub fn run() -> Result<(), EventLoopError> {
     let store = FontStorage::new();
-    
+
     let mut app = App {
         window: None,
         ctx: None,
@@ -29,24 +33,29 @@ pub fn run() -> Result<(), EventLoopError> {
         pixmap: Pixmap::new(1, 1).unwrap(),
         mask: Mask::new(1, 1).unwrap(),
     };
-    
+
     let ev = EventLoop::new()?;
     ev.set_control_flow(winit::event_loop::ControlFlow::Wait);
 
-    if let Err(e) = app.editor.font_cache.open(&store, "/usr/share/fonts/TTF/DejaVuSans.ttf") {
+    if let Err(e) = app
+        .editor
+        .font_cache
+        .open(&store, "/usr/share/fonts/TTF/DejaVuSans.ttf")
+    {
         log::error!("Failed to load font: {e}");
     }
 
-    if let Err(e) = app.editor.font_cache.open(&store, "/usr/share/fonts/TTF/FiraCodeNerdFontMono-Regular.ttf") {
+    if let Err(e) = app.editor.font_cache.open(
+        &store,
+        "/usr/share/fonts/TTF/FiraCodeNerdFontMono-Regular.ttf",
+    ) {
         log::error!("Failed to load font: {e}");
     }
-    
 
     app.editor.selected_font = app.editor.font_cache.search("DejaVu Sans", None).next();
-    
+
     ev.run_app(&mut app)
 }
-
 
 impl ApplicationHandler for App<'_> {
     fn resumed(&mut self, event_loop: &ActiveEventLoop) {
@@ -92,7 +101,7 @@ impl ApplicationHandler for App<'_> {
         match event {
             WindowEvent::CloseRequested => {
                 event_loop.exit();
-            },
+            }
             WindowEvent::Resized(sz) => {
                 if let Some(ref mut root) = self.root {
                     let Some((width, height)) = NonZero::new(sz.width).zip(NonZero::new(sz.height))
@@ -125,11 +134,11 @@ impl ApplicationHandler for App<'_> {
                             )
                         }
                     };
-                    
+
                     self.pixmap.fill(Color::WHITE);
                     self.editor.paint(&mut self.pixmap, &mut self.mask);
 
-                    for (px, out) in self.pixmap.pixels().into_iter().zip(buffer.iter_mut())  {
+                    for (px, out) in self.pixmap.pixels().into_iter().zip(buffer.iter_mut()) {
                         let r = (px.red() as u32 * px.alpha() as u32) >> 8;
                         let g = (px.green() as u32 * px.alpha() as u32) >> 8;
                         let b = (px.blue() as u32 * px.alpha() as u32) >> 8;

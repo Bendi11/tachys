@@ -1,5 +1,10 @@
 use skrifa::{
-    attribute::Attributes, outline::{DrawSettings, HintingInstance, HintingMode}, prelude::LocationRef, raw::TableProvider, string::StringId, FontRef, MetadataProvider, OutlineGlyphCollection
+    attribute::Attributes,
+    outline::{DrawSettings, HintingInstance, HintingMode},
+    prelude::LocationRef,
+    raw::TableProvider,
+    string::StringId,
+    FontRef, MetadataProvider, OutlineGlyphCollection,
 };
 use tiny_skia::{Color, FillRule, Paint, PathBuilder, Pixmap, Point, Rect, Shader, Transform};
 
@@ -67,7 +72,8 @@ impl<'s> FontDrawData<'s> {
                 lcd_subpixel: None,
                 preserve_linear_metrics: false,
             },
-        ).map_err(FontError::Draw)?;
+        )
+        .map_err(FontError::Draw)?;
 
         let settings = if hinted {
             DrawSettings::hinted(&hints, false)
@@ -88,7 +94,8 @@ impl<'s> FontDrawData<'s> {
                     metric_bound.y_min,
                     metric_bound.x_max,
                     metric_bound.y_max,
-                ).ok_or(FontError::InvalidBounds)?;
+                )
+                .ok_or(FontError::InvalidBounds)?;
 
                 let pos = Point::from_xy(metric_bound.x_min, size - metric_bound.y_max);
 

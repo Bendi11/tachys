@@ -1,6 +1,5 @@
-mod store;
 mod data;
-
+mod store;
 
 use std::collections::{hash_map, HashMap};
 
@@ -17,13 +16,13 @@ pub struct EditorFont<'s> {
 
 /// Container of loaded fonts for the editor, enabling higher-level font loading and searching by
 /// attributes.
-#[derive(Default,)]
+#[derive(Default)]
 pub struct EditorFonts<'s> {
     loaded: SlotMap<FontId, EditorFont<'s>>,
 }
 
 /// A glyph that has been rendered to a temporary buffer and cached to reduce rasterization work
-#[derive(Clone,)]
+#[derive(Clone)]
 pub struct RenderedGlyph {
     pub pixmap: Option<Pixmap>,
     pub pos: Point,
@@ -36,9 +35,12 @@ pub struct Glyph {
     pub size_px: u16,
 }
 
-
 impl<'s> EditorFonts<'s> {
-    pub fn open<'a, P: AsRef<std::path::Path>>(&'a mut self, storage: &'s FontStorage, path: P) -> Result<FontId, FontError> {
+    pub fn open<'a, P: AsRef<std::path::Path>>(
+        &'a mut self,
+        storage: &'s FontStorage,
+        path: P,
+    ) -> Result<FontId, FontError> {
         let buf = storage.load(path)?;
         self.load(buf)
     }
@@ -48,18 +50,22 @@ impl<'s> EditorFonts<'s> {
     pub fn load(&mut self, buf: &'s [u8]) -> Result<FontId, FontError> {
         let font = EditorFont::new(buf)?;
         let stored = self.loaded.iter().find_map(|(k, v)| {
-            (v.rendering.attr == font.rendering.attr && v.rendering.family.eq_ignore_ascii_case(&font.rendering.family)).then_some(k)
+            (v.rendering.attr == font.rendering.attr
+                && v.rendering
+                    .family
+                    .eq_ignore_ascii_case(&font.rendering.family))
+            .then_some(k)
         });
         if let Some(stored) = stored {
             return Ok(stored);
         }
-        
+
         log::info!("Loaded font {}", font.rendering.family());
         let id = self.loaded.insert(font);
 
         Ok(id)
     }
-    
+
     /// Get an immutable reference to the cached font with the given ID
     pub fn get<'a>(&'a self, id: FontId) -> &'a EditorFont {
         &self.loaded[id]
@@ -69,19 +75,24 @@ impl<'s> EditorFonts<'s> {
     pub fn get_mut<'a>(&'a mut self, id: FontId) -> &'a mut EditorFont<'s> {
         &mut self.loaded[id]
     }
-    
+
     /// Attempt to locate a font of the given family, with optional attributes.
     /// If not given, the first font located of the family will be returned
-    pub fn search<'a, 'f>(&'a self, family: &'f str, attr: Option<Attributes>) -> impl Iterator<Item = FontId> + 'f
-    where 'a: 'f {
+    pub fn search<'a, 'f>(
+        &'a self,
+        family: &'f str,
+        attr: Option<Attributes>,
+    ) -> impl Iterator<Item = FontId> + 'f
+    where
+        'a: 'f,
+    {
         let family = family.trim();
 
-        self
-            .loaded
-            .iter()
-            .filter_map(move |(k, v)| {
-                (attr.map(|attr| attr == v.rendering.attr).unwrap_or(true) && v.rendering.family.eq_ignore_ascii_case(family)).then_some(k)
-            })
+        self.loaded.iter().filter_map(move |(k, v)| {
+            (attr.map(|attr| attr == v.rendering.attr).unwrap_or(true)
+                && v.rendering.family.eq_ignore_ascii_case(family))
+            .then_some(k)
+        })
     }
 }
 
@@ -93,16 +104,17 @@ impl<'s> EditorFont<'s> {
             glyph_cache: HashMap::new(),
         })
     }
-    
+
     /// Return the cached glyph for the given specifier or rasterize and return it
     pub fn glyph<'a>(&'a mut self, spec: Glyph) -> Result<&'a RenderedGlyph, FontError> {
         match self.glyph_cache.entry(spec) {
             hash_map::Entry::Occupied(occ) => Ok(occ.into_mut()),
-            hash_map::Entry::Vacant(vacant) => Ok(vacant.insert(self.rendering.render_glyph(spec)?)),
+            hash_map::Entry::Vacant(vacant) => {
+                Ok(vacant.insert(self.rendering.render_glyph(spec)?))
+            }
         }
     }
 }
-
 
 slotmap::new_key_type! {
     /// Identifier used to access an [EditorFont] from a [FontCache]
@@ -114,7 +126,6 @@ impl std::fmt::Display for FontId {
         write!(f, "{:X}", self.0.as_ffi())
     }
 }
-
 
 #[derive(Debug, thiserror::Error)]
 pub enum FontError {

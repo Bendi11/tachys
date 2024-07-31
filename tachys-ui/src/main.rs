@@ -7,7 +7,7 @@ struct Logger;
 
 impl log::Log for Logger {
     fn enabled(&self, _metadata: &log::Metadata) -> bool {
-       true 
+        true
     }
 
     fn log(&self, record: &log::Record) {
@@ -16,7 +16,7 @@ impl log::Log for Logger {
             match record.level() {
                 Level::Error => "E",
                 Level::Warn => "W",
-                _ => "*"
+                _ => "*",
             },
             record.args()
         );
@@ -33,9 +33,7 @@ fn main() {
         eprintln!("Failed to set logger: {}", e);
     }
 
-
     if let Err(e) = app::run() {
         log::error!("Failed to run event loop: {e}");
     }
 }
-

@@ -1,6 +1,8 @@
 use font::{EditorFonts, FontId};
-use skrifa::{outline::DrawSettings, prelude::{LocationRef, Size}, raw::TableProvider, MetadataProvider};
-use tiny_skia::{BlendMode, Color, FillRule, Mask, Paint, Path, PathBuilder, Pixmap, PixmapPaint, Point, Rect, Shader, Stroke, Transform};
+use tiny_skia::{
+    BlendMode, Color, FillRule, Mask, Paint, Path, PathBuilder, Pixmap, PixmapPaint, Point, Rect,
+    Shader, Stroke, Transform,
+};
 
 pub mod font;
 
@@ -18,29 +20,60 @@ impl<'s> Editor<'s> {
     }
 
     pub fn paint(&mut self, buf: &mut Pixmap, mask: &mut Mask) {
+        let time = std::time::SystemTime::now();
         let Some(font) = self.selected_font.map(|f| self.font_cache.get_mut(f)) else {
-            return
+            return;
         };
-        
+
         let mut pos = 0i32;
         for c in "Hello, World! λ ƒ".chars() {
-            let render = font.glyph(font::Glyph { character: c, size_px: 16 }).unwrap();
+            let render = font
+                .glyph(font::Glyph {
+                    character: c,
+                    size_px: 16,
+                })
+                .unwrap();
             let glyph_pos = Point::from_xy(pos as f32, 0f32) + render.pos;
             if let Some(ref pixmap) = render.pixmap {
                 let mut path = PathBuilder::new();
                 path.move_to(glyph_pos.x, glyph_pos.y);
                 path.line_to(glyph_pos.x + pixmap.width() as f32, glyph_pos.y);
-                path.line_to(glyph_pos.x + pixmap.width() as f32, pixmap.height() as f32 + glyph_pos.y);
+                path.line_to(
+                    glyph_pos.x + pixmap.width() as f32,
+                    pixmap.height() as f32 + glyph_pos.y,
+                );
                 path.line_to(glyph_pos.x, pixmap.height() as f32 + glyph_pos.y);
                 path.line_to(glyph_pos.x, glyph_pos.y);
                 let path = path.finish().unwrap();
-                //buf.stroke_path(&path, &tiny_skia::Paint { shader: Shader::SolidColor(Color::from_rgba8(255, 0, 0, 255)), ..Default::default() }, &Stroke { width: 1f32, ..Default::default() }, Transform::identity(), None);
-                
-                log::info!("{c} at {glyph_pos:?}");
-                buf.draw_pixmap(glyph_pos.x.round() as i32, glyph_pos.y.round() as i32, pixmap.as_ref(), &PixmapPaint::default(), Transform::default(), None);
+                buf.stroke_path(
+                    &path,
+                    &tiny_skia::Paint {
+                        shader: Shader::SolidColor(Color::from_rgba8(255, 0, 0, 255)),
+                        ..Default::default()
+                    },
+                    &Stroke {
+                        width: 1f32,
+                        ..Default::default()
+                    },
+                    Transform::identity(),
+                    None,
+                );
+
+                buf.draw_pixmap(
+                    glyph_pos.x.round() as i32,
+                    glyph_pos.y.round() as i32,
+                    pixmap.as_ref(),
+                    &PixmapPaint::default(),
+                    Transform::default(),
+                    None,
+                );
             }
 
             pos += render.advance as i32;
         }
+
+        let end = std::time::SystemTime::now();
+        let duration = end.duration_since(time).unwrap();
+        log::info!("Render {}ms", duration.as_millis())
     }
 }
