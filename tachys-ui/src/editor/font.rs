@@ -1,15 +1,18 @@
 mod store;
+mod data;
 
-use skrifa::{attribute::Attributes, string::StringId, FontRef, MetadataProvider};
+
+use std::collections::{hash_map, HashMap};
+
+use data::FontDrawData;
+use skrifa::attribute::Attributes;
 use slotmap::SlotMap;
 pub use store::FontStorage;
+use tiny_skia::{Pixmap, Point};
 
-/// Cached font data referencing a memory mapped file or in-memory buffer in a
-/// [FontStorage](crate::editor::font::FontStorage)
 pub struct EditorFont<'s> {
-    tables: FontRef<'s>,
-    attr: Attributes,
-    family: String,
+    rendering: FontDrawData<'s>,
+    glyph_cache: HashMap<Glyph, RenderedGlyph>,
 }
 
 /// Container of loaded fonts for the editor, enabling higher-level font loading and searching by
@@ -18,6 +21,21 @@ pub struct EditorFont<'s> {
 pub struct EditorFonts<'s> {
     loaded: SlotMap<FontId, EditorFont<'s>>,
 }
+
+/// A glyph that has been rendered to a temporary buffer and cached to reduce rasterization work
+#[derive(Clone,)]
+pub struct RenderedGlyph {
+    pub pixmap: Option<Pixmap>,
+    pub pos: Point,
+    pub advance: i16,
+}
+
+#[derive(Clone, Copy, Debug, Hash, PartialEq, Eq)]
+pub struct Glyph {
+    pub character: char,
+    pub size_px: u16,
+}
+
 
 impl<'s> EditorFonts<'s> {
     pub fn open<'a, P: AsRef<std::path::Path>>(&'a mut self, storage: &'s FontStorage, path: P) -> Result<FontId, FontError> {
@@ -30,19 +48,26 @@ impl<'s> EditorFonts<'s> {
     pub fn load(&mut self, buf: &'s [u8]) -> Result<FontId, FontError> {
         let font = EditorFont::new(buf)?;
         let stored = self.loaded.iter().find_map(|(k, v)| {
-            (v.attr == font.attr && v.family.eq_ignore_ascii_case(&font.family)).then_some(k)
+            (v.rendering.attr == font.rendering.attr && v.rendering.family.eq_ignore_ascii_case(&font.rendering.family)).then_some(k)
         });
         if let Some(stored) = stored {
             return Ok(stored);
         }
-
+        
+        log::info!("Loaded font {}", font.rendering.family());
         let id = self.loaded.insert(font);
+
         Ok(id)
     }
     
     /// Get an immutable reference to the cached font with the given ID
     pub fn get<'a>(&'a self, id: FontId) -> &'a EditorFont {
         &self.loaded[id]
+    }
+
+    /// Get a mutable reference to the cached font with the given ID
+    pub fn get_mut<'a>(&'a mut self, id: FontId) -> &'a mut EditorFont<'s> {
+        &mut self.loaded[id]
     }
     
     /// Attempt to locate a font of the given family, with optional attributes.
@@ -55,31 +80,29 @@ impl<'s> EditorFonts<'s> {
             .loaded
             .iter()
             .filter_map(move |(k, v)| {
-                (attr.map(|attr| attr == v.attr).unwrap_or(true) && v.family.eq_ignore_ascii_case(family)).then_some(k)
+                (attr.map(|attr| attr == v.rendering.attr).unwrap_or(true) && v.rendering.family.eq_ignore_ascii_case(family)).then_some(k)
             })
     }
 }
 
 impl<'s> EditorFont<'s> {
-    pub fn new(data: &'s [u8]) -> Result<Self, FontError> {
-        let tables = FontRef::new(data)?;
-        
-        let family = tables.localized_strings(StringId::FAMILY_NAME).english_or_first().ok_or(FontError::NoFamilyName)?;
-        let family = family.chars().collect::<String>();
-        let attr = tables.attributes();
-
+    /// Read a font from the given buffer and initialize all caches empty
+    pub fn new(buf: &'s [u8]) -> Result<Self, FontError> {
         Ok(Self {
-            tables,
-            family,
-            attr,
+            rendering: FontDrawData::new(buf)?,
+            glyph_cache: HashMap::new(),
         })
     }
     
-    /// Get the font family name of the loaded font
-    pub fn family(&self) -> &str {
-        &self.family
+    /// Return the cached glyph for the given specifier or rasterize and return it
+    pub fn glyph<'a>(&'a mut self, spec: Glyph) -> Result<&'a RenderedGlyph, FontError> {
+        match self.glyph_cache.entry(spec) {
+            hash_map::Entry::Occupied(occ) => Ok(occ.into_mut()),
+            hash_map::Entry::Vacant(vacant) => Ok(vacant.insert(self.rendering.render_glyph(spec)?)),
+        }
     }
 }
+
 
 slotmap::new_key_type! {
     /// Identifier used to access an [EditorFont] from a [FontCache]
@@ -92,11 +115,6 @@ impl std::fmt::Display for FontId {
     }
 }
 
-impl<'s> skrifa::raw::TableProvider<'s> for EditorFont<'s> {
-    fn data_for_tag(&self, tag: skrifa::Tag) -> Option<skrifa::raw::FontData<'s>> {
-        self.tables.data_for_tag(tag)
-    } 
-}
 
 #[derive(Debug, thiserror::Error)]
 pub enum FontError {
@@ -104,6 +122,12 @@ pub enum FontError {
     IO(#[from] std::io::Error),
     #[error("Failed to read font: {0}")]
     Parse(#[from] skrifa::outline::error::ReadError),
+    #[error("Failed to draw glyph: {0}")]
+    Draw(skrifa::outline::error::DrawError),
     #[error("No font family name located")]
     NoFamilyName,
+    #[error("Font does not contain a mapping for the character: '{0}'")]
+    NoMap(char),
+    #[error("Font provides invalid bounding box for glyph")]
+    InvalidBounds,
 }

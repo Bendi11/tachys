@@ -1,7 +1,7 @@
-use std::{num::NonZero, rc::Rc, cell::OnceCell};
+use std::{num::NonZero, rc::Rc};
 
 use softbuffer::Surface;
-use tiny_skia::{Color, Mask, Pixmap, PixmapMut};
+use tiny_skia::{Color, Mask, Pixmap};
 use winit::{
     application::ApplicationHandler, error::EventLoopError, event::WindowEvent, event_loop::{ActiveEventLoop, EventLoop}, window::{Window, WindowAttributes, WindowId}
 };
@@ -37,11 +37,10 @@ pub fn run() -> Result<(), EventLoopError> {
         log::error!("Failed to load font: {e}");
     }
 
-    if let Err(e) = app.editor.font_cache.open(&store, "/usr/share/fonts/TTF/FiraCodeNerdFont-Medium.ttf") {
+    if let Err(e) = app.editor.font_cache.open(&store, "/usr/share/fonts/TTF/FiraCodeNerdFontMono-Regular.ttf") {
         log::error!("Failed to load font: {e}");
     }
     
-
 
     app.editor.selected_font = app.editor.font_cache.search("DejaVu Sans", None).next();
     
