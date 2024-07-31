@@ -1,5 +1,5 @@
 use skrifa::{
-    attribute::Attributes, outline::{DrawSettings, HintingInstance, HintingMode}, prelude::LocationRef, raw::TableProvider, FontRef, MetadataProvider, OutlineGlyphCollection
+    attribute::Attributes, outline::{DrawSettings, HintingInstance, HintingMode}, prelude::LocationRef, raw::TableProvider, string::StringId, FontRef, MetadataProvider, OutlineGlyphCollection
 };
 use tiny_skia::{Color, FillRule, Paint, PathBuilder, Pixmap, Point, Rect, Shader, Transform};
 
