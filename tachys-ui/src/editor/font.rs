@@ -10,7 +10,7 @@ pub use store::FontStorage;
 use tiny_skia::{Pixmap, Point};
 
 pub struct EditorFont<'s> {
-    rendering: FontDrawData<'s>,
+    data: FontDrawData<'s>,
     glyph_cache: HashMap<Glyph, RenderedGlyph>,
 }
 
@@ -50,17 +50,17 @@ impl<'s> EditorFonts<'s> {
     pub fn load(&mut self, buf: &'s [u8]) -> Result<FontId, FontError> {
         let font = EditorFont::new(buf)?;
         let stored = self.loaded.iter().find_map(|(k, v)| {
-            (v.rendering.attr == font.rendering.attr
-                && v.rendering
+            (v.data.attr == font.data.attr
+                && v.data
                     .family
-                    .eq_ignore_ascii_case(&font.rendering.family))
+                    .eq_ignore_ascii_case(&font.data.family))
             .then_some(k)
         });
         if let Some(stored) = stored {
             return Ok(stored);
         }
 
-        log::info!("Loaded font {}", font.rendering.family());
+        log::info!("Loaded font {}", font.data.family());
         let id = self.loaded.insert(font);
 
         Ok(id)
@@ -89,8 +89,8 @@ impl<'s> EditorFonts<'s> {
         let family = family.trim();
 
         self.loaded.iter().filter_map(move |(k, v)| {
-            (attr.map(|attr| attr == v.rendering.attr).unwrap_or(true)
-                && v.rendering.family.eq_ignore_ascii_case(family))
+            (attr.map(|attr| attr == v.data.attr).unwrap_or(true)
+                && v.data.family.eq_ignore_ascii_case(family))
             .then_some(k)
         })
     }
@@ -100,7 +100,7 @@ impl<'s> EditorFont<'s> {
     /// Read a font from the given buffer and initialize all caches empty
     pub fn new(buf: &'s [u8]) -> Result<Self, FontError> {
         Ok(Self {
-            rendering: FontDrawData::new(buf)?,
+            data: FontDrawData::new(buf)?,
             glyph_cache: HashMap::new(),
         })
     }
@@ -110,9 +110,14 @@ impl<'s> EditorFont<'s> {
         match self.glyph_cache.entry(spec) {
             hash_map::Entry::Occupied(occ) => Ok(occ.into_mut()),
             hash_map::Entry::Vacant(vacant) => {
-                Ok(vacant.insert(self.rendering.render_glyph(spec)?))
+                Ok(vacant.insert(self.data.render_glyph(spec)?))
             }
         }
+    }
+    
+    /// Get the font family name of this font
+    pub fn family(&self) -> &str {
+        self.data.family()
     }
 }
 

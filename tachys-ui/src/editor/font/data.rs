@@ -2,7 +2,6 @@ use skrifa::{
     attribute::Attributes,
     outline::{DrawSettings, HintingInstance, HintingMode},
     prelude::LocationRef,
-    raw::TableProvider,
     string::StringId,
     FontRef, MetadataProvider, OutlineGlyphCollection,
 };
@@ -58,11 +57,6 @@ impl<'s> FontDrawData<'s> {
 
         let metric = self.tables.glyph_metrics(skrifa_sz, LocationRef::default());
 
-        let metric_bound = metric.bounds(id).ok_or(FontError::NoMap(glyph.character))?;
-        let advance = metric
-            .advance_width(id)
-            .ok_or(FontError::NoMap(glyph.character))? as i16;
-
         let hinted = true;
         let hints = HintingInstance::new(
             &self.glyph_outlines,
@@ -89,18 +83,21 @@ impl<'s> FontDrawData<'s> {
 
         let (pixmap, pos) = match builder.0.finish() {
             Some(path) => {
-                let bounds = Rect::from_ltrb(
-                    metric_bound.x_min,
-                    metric_bound.y_min,
-                    metric_bound.x_max,
-                    metric_bound.y_max,
-                )
-                .ok_or(FontError::InvalidBounds)?;
+                let bounds = match metric.bounds(id) {
+                    Some(metric_bound) => Rect::from_ltrb(
+                            metric_bound.x_min,
+                            metric_bound.y_min,
+                            metric_bound.x_max,
+                            metric_bound.y_max,
+                        )
+                        .ok_or(FontError::InvalidBounds)?,
+                    None => path.bounds()
+                };
 
-                let pos = Point::from_xy(metric_bound.x_min, size - metric_bound.y_max);
+                let pos = Point::from_xy(bounds.left(), size - bounds.bottom());
 
                 let mut map = Pixmap::new(
-                    bounds.width() as u32 + AA_PADDING,
+                    bounds.width()  as u32 + AA_PADDING,
                     bounds.height() as u32 + AA_PADDING,
                 )
                 .ok_or(FontError::InvalidBounds)?;
@@ -114,8 +111,8 @@ impl<'s> FontDrawData<'s> {
                     },
                     FillRule::EvenOdd,
                     Transform::from_translate(
-                        -metric_bound.x_min + (AA_PADDING / 2) as f32,
-                        -metric_bound.y_min - (AA_PADDING / 2) as f32,
+                        -bounds.left() + (AA_PADDING / 2) as f32,
+                        -bounds.top()  - (AA_PADDING / 2) as f32,
                     )
                     .post_scale(1., -1.)
                     .post_translate(0., bounds.height()),
@@ -126,6 +123,10 @@ impl<'s> FontDrawData<'s> {
             }
             None => (None, Point::default()),
         };
+
+        let advance = metric
+            .advance_width(id)
+            .ok_or(FontError::NoMap(glyph.character))? as i16;
 
         Ok(RenderedGlyph {
             pixmap,

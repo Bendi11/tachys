@@ -1,8 +1,9 @@
 use font::{EditorFonts, FontId};
 use tiny_skia::{
-    BlendMode, Color, FillRule, Mask, Paint, Path, PathBuilder, Pixmap, PixmapPaint, Point, Rect,
-    Shader, Stroke, Transform,
+    Color, Mask, PathBuilder, Pixmap, PixmapPaint, Point, Rect, Shader, Stroke, Transform
 };
+
+use crate::ui::PixmapExtensions;
 
 pub mod font;
 
@@ -25,38 +26,20 @@ impl<'s> Editor<'s> {
             return;
         };
 
-        let mut pos = 0i32;
-        for c in "Hello, World! λ ƒ".chars() {
+        let family = font.family().to_owned();
+        let mut advance = 0;
+        for c in family.chars() {
             let render = font
                 .glyph(font::Glyph {
                     character: c,
-                    size_px: 16,
+                    size_px: 220,
                 })
                 .unwrap();
-            let glyph_pos = Point::from_xy(pos as f32, 0f32) + render.pos;
+            let glyph_pos = Point::from_xy(advance as f32, 0f32) + render.pos;
             if let Some(ref pixmap) = render.pixmap {
-                let mut path = PathBuilder::new();
-                path.move_to(glyph_pos.x, glyph_pos.y);
-                path.line_to(glyph_pos.x + pixmap.width() as f32, glyph_pos.y);
-                path.line_to(
-                    glyph_pos.x + pixmap.width() as f32,
-                    pixmap.height() as f32 + glyph_pos.y,
-                );
-                path.line_to(glyph_pos.x, pixmap.height() as f32 + glyph_pos.y);
-                path.line_to(glyph_pos.x, glyph_pos.y);
-                let path = path.finish().unwrap();
-                buf.stroke_path(
-                    &path,
-                    &tiny_skia::Paint {
-                        shader: Shader::SolidColor(Color::from_rgba8(255, 0, 0, 255)),
-                        ..Default::default()
-                    },
-                    &Stroke {
-                        width: 1f32,
-                        ..Default::default()
-                    },
-                    Transform::identity(),
-                    None,
+                buf.outline_rect(
+                    Rect::from_xywh(glyph_pos.x, glyph_pos.y, pixmap.width() as f32, pixmap.height() as f32).unwrap(),
+                    Color::from_rgba8(255, 0, 0, 255)
                 );
 
                 buf.draw_pixmap(
@@ -69,7 +52,7 @@ impl<'s> Editor<'s> {
                 );
             }
 
-            pos += render.advance as i32;
+            advance += render.advance as i32;
         }
 
         let end = std::time::SystemTime::now();
