@@ -9,16 +9,18 @@ use slotmap::SlotMap;
 pub use store::FontStorage;
 use tiny_skia::{Pixmap, Point};
 
-pub struct EditorFont<'s> {
+/// All state required to render and position glyphs from a font, including glyph cache for
+/// efficient rendering
+pub struct UiFont<'s> {
     data: FontDrawData<'s>,
     glyph_cache: HashMap<Glyph, RenderedGlyph>,
 }
 
 /// Container of loaded fonts for the editor, enabling higher-level font loading and searching by
 /// attributes.
-pub struct EditorFonts<'s> {
+pub struct Fonts<'s> {
     storage: &'s FontStorage,
-    loaded: SlotMap<FontId, EditorFont<'s>>,
+    loaded: SlotMap<FontId, UiFont<'s>>,
 }
 
 /// A glyph that has been rendered to a temporary buffer and cached to reduce rasterization work
@@ -35,8 +37,8 @@ pub struct Glyph {
     pub size_px: u16,
 }
 
-impl<'s> EditorFonts<'s> {
-    /// Create a new `EditorFonts` from the backing `FontStorage` structure used to open font files
+impl<'s> Fonts<'s> {
+    /// Create a new `Fonts` from the backing `FontStorage` structure used to open font files
     pub fn new(storage: &'s FontStorage) -> Self {
         Self {
             storage,
@@ -53,7 +55,7 @@ impl<'s> EditorFonts<'s> {
     /// Attempt to load a font from the given buffer, and return the ID of the stored font if
     /// successful
     pub fn load(&mut self, buf: &'s [u8]) -> Result<FontId, FontError> {
-        let font = EditorFont::new(buf)?;
+        let font = UiFont::new(buf)?;
         let stored = self.loaded.iter().find_map(|(k, v)| {
             (v.data.attr == font.data.attr && v.data.family.eq_ignore_ascii_case(&font.data.family))
                 .then_some(k)
@@ -69,12 +71,12 @@ impl<'s> EditorFonts<'s> {
     }
 
     /// Get an immutable reference to the cached font with the given ID
-    pub fn get(&self, id: FontId) -> &EditorFont {
+    pub fn get(&self, id: FontId) -> &UiFont {
         &self.loaded[id]
     }
 
     /// Get a mutable reference to the cached font with the given ID
-    pub fn get_mut<'a>(&'a mut self, id: FontId) -> &'a mut EditorFont<'s> {
+    pub fn get_mut<'a>(&'a mut self, id: FontId) -> &'a mut UiFont<'s> {
         &mut self.loaded[id]
     }
 
@@ -98,7 +100,7 @@ impl<'s> EditorFonts<'s> {
     }
 }
 
-impl<'s> EditorFont<'s> {
+impl<'s> UiFont<'s> {
     /// Read a font from the given buffer and initialize all caches empty
     pub fn new(buf: &'s [u8]) -> Result<Self, FontError> {
         Ok(Self {
