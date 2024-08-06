@@ -1,6 +1,5 @@
 use log::Level;
 
-mod editor;
 mod ui;
 
 struct Logger;

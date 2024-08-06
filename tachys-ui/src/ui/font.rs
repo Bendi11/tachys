@@ -16,8 +16,8 @@ pub struct EditorFont<'s> {
 
 /// Container of loaded fonts for the editor, enabling higher-level font loading and searching by
 /// attributes.
-#[derive(Default)]
 pub struct EditorFonts<'s> {
+    storage: &'s FontStorage,
     loaded: SlotMap<FontId, EditorFont<'s>>,
 }
 
@@ -36,12 +36,20 @@ pub struct Glyph {
 }
 
 impl<'s> EditorFonts<'s> {
-    pub fn open<'a, P: AsRef<std::path::Path>>(
-        &'a mut self,
-        storage: &'s FontStorage,
+    /// Create a new `EditorFonts` from the backing `FontStorage` structure used to open font files
+    pub fn new(storage: &'s FontStorage) -> Self {
+        Self {
+            storage,
+            loaded: Default::default(),
+        }
+    }
+    
+    /// Open and load an opentype font from the given path
+    pub fn open<P: AsRef<std::path::Path>>(
+        &mut self,
         path: P,
     ) -> Result<FontId, FontError> {
-        let buf = storage.load(path)?;
+        let buf = self.storage.load(path)?;
         self.load(buf)
     }
 

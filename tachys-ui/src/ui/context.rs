@@ -3,7 +3,7 @@ use std::{cell::OnceCell, marker::PhantomData, num::NonZero, sync::Arc};
 use tiny_skia::{Pixmap, PixmapMut, Rect};
 use winit::{application::ApplicationHandler, dpi::PhysicalSize, event::WindowEvent, event_loop::ActiveEventLoop, window::{Window, WindowAttributes}};
 
-use crate::editor::font::{EditorFonts, FontStorage};
+use crate::ui::font::{EditorFonts, FontStorage};
 
 /// Data required for window handling and software rendering
 struct RenderData {
@@ -94,10 +94,10 @@ impl RenderData {
 }
 
 impl<'s> Ui<'s> {
-    pub fn new(storage: &'s mut FontStorage) -> Self {
+    pub fn new(storage: &'s FontStorage) -> Self {
         Self {
             render: OnceCell::default(),
-            fonts: EditorFonts::default(),
+            fonts: EditorFonts::new(storage),
         }
     }
 }

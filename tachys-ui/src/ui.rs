@@ -1,7 +1,6 @@
-use std::marker::PhantomData;
-
 use tiny_skia::{PixmapMut, Rect};
 
+mod font;
 mod ext;
 mod context;
 
@@ -10,7 +9,7 @@ pub use ext::PixmapExtensions;
 pub use context::{Ui, LayoutCtx, PaintCtx};
 use winit::event_loop::EventLoop;
 
-use crate::editor::font::FontStorage;
+use font::FontStorage;
 
 pub fn run() {
     let mut storage = FontStorage::new();
