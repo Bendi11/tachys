@@ -1,43 +1,50 @@
-use tiny_skia::{Color, Paint, PathBuilder, Pixmap, PixmapMut, Rect, Shader, Stroke, Transform};
+use std::marker::PhantomData;
 
+use tiny_skia::{PixmapMut, Rect};
 
-pub trait Widget {
+mod ext;
+mod context;
 
-}
+pub use ext::PixmapExtensions;
 
-pub trait PixmapExtensions {
-    fn outline_rect(&mut self, rect: Rect, color: Color);
-}
+pub use context::{Ui, LayoutCtx, PaintCtx};
+use winit::event_loop::EventLoop;
 
-impl PixmapExtensions for PixmapMut<'_> {
-    fn outline_rect(&mut self, rect: Rect, color: Color) {
-        let mut path = PathBuilder::new();
-        path.move_to(rect.left(), rect.top());
-        path.line_to(rect.right(), rect.top());
-        path.line_to(rect.right(), rect.bottom());
-        path.line_to(rect.left(), rect.bottom());
-        path.line_to(rect.left(), rect.top());
+use crate::editor::font::FontStorage;
 
-        let path = path.finish().unwrap();
-        self.stroke_path(
-            &path,
-            &Paint {
-                shader: Shader::SolidColor(color),
-                anti_alias: false,
-                ..Default::default()
-            },
-            &Stroke {
-                width: 1f32,
-                ..Default::default()
-            },
-            Transform::default(),
-            None,
-        );
+pub fn run() {
+    let mut storage = FontStorage::new();
+    let ev = match EventLoop::new() {
+        Ok(ev) => ev,
+        Err(e) => {
+            log::error!("Failed to create event loop: {e}");
+            return
+        }
+    };
+
+    ev.set_control_flow(winit::event_loop::ControlFlow::Wait);
+
+    let mut ui = Ui::new(&mut storage);
+
+    if let Err(e) = ev.run_app(&mut ui) {
+        log::error!("Event loop error: {e}");
     }
 }
 
-impl PixmapExtensions for Pixmap {
-    fn outline_rect(&mut self, rect: Rect, color: Color) {
-        self.as_mut().outline_rect(rect, color)
-    }
+pub enum UiEvent {
+
+}
+
+pub trait Element {
+    fn layout(&mut self, ctx: LayoutCtx<'_>) -> Rect;
+
+    fn paint(&mut self, ctx: PaintCtx<'_>) -> Result<(), PaintError>;
+
+    fn event(&mut self, event: UiEvent);
+}
+
+
+#[derive(Debug, thiserror::Error)]
+pub enum PaintError {
+    
 }

@@ -67,7 +67,7 @@ impl<'s> EditorFonts<'s> {
     }
 
     /// Get an immutable reference to the cached font with the given ID
-    pub fn get<'a>(&'a self, id: FontId) -> &'a EditorFont {
+    pub fn get(&self, id: FontId) -> &EditorFont {
         &self.loaded[id]
     }
 
@@ -106,7 +106,7 @@ impl<'s> EditorFont<'s> {
     }
 
     /// Return the cached glyph for the given specifier or rasterize and return it
-    pub fn glyph<'a>(&'a mut self, spec: Glyph) -> Result<&'a RenderedGlyph, FontError> {
+    pub fn glyph(&mut self, spec: Glyph) -> Result<&RenderedGlyph, FontError> {
         match self.glyph_cache.entry(spec) {
             hash_map::Entry::Occupied(occ) => Ok(occ.into_mut()),
             hash_map::Entry::Vacant(vacant) => {

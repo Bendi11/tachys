@@ -1,6 +1,6 @@
 use font::{EditorFonts, FontId};
 use tiny_skia::{
-    Color, Mask, PathBuilder, Pixmap, PixmapPaint, Point, Rect, Shader, Stroke, Transform
+    Color, Mask, Pixmap, PixmapPaint, Point, Rect, Transform
 };
 
 use crate::ui::PixmapExtensions;
@@ -20,7 +20,7 @@ impl<'s> Editor<'s> {
         }
     }
 
-    pub fn paint(&mut self, buf: &mut Pixmap, mask: &mut Mask) {
+    pub fn paint(&mut self, buf: &mut Pixmap, _mask: &mut Mask) {
         let time = std::time::SystemTime::now();
         let Some(font) = self.selected_font.map(|f| self.font_cache.get_mut(f)) else {
             return;

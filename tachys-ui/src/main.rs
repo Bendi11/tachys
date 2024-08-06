@@ -1,6 +1,5 @@
 use log::Level;
 
-mod app;
 mod editor;
 mod ui;
 
@@ -34,7 +33,5 @@ fn main() {
         eprintln!("Failed to set logger: {}", e);
     }
 
-    if let Err(e) = app::run() {
-        log::error!("Failed to run event loop: {e}");
-    }
+    ui::run()
 }

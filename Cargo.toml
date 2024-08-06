@@ -7,6 +7,7 @@ members = [
 ]
 
 [workspace.dependencies]
+internment = { version = "0.8", features = ["arc"] }
 
 [profile.release]
 lto = true

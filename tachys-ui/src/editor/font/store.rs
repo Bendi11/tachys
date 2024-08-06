@@ -24,7 +24,7 @@ impl FontStorage {
     }
 
     /// Load a file from the given path and return a reference to its contents
-    pub fn load<'a, P: AsRef<std::path::Path>>(&'a self, path: P) -> Result<&'a [u8], FontError> {
+    pub fn load<P: AsRef<std::path::Path>>(&self, path: P) -> Result<&[u8], FontError> {
         let path = path.as_ref().to_owned();
         let mut file = File::open(&path)?;
 
@@ -51,7 +51,7 @@ impl FontStorage {
 }
 
 impl AsRef<[u8]> for FontBuffer {
-    fn as_ref<'a>(&'a self) -> &'a [u8] {
+    fn as_ref(&self) -> &[u8] {
         match self {
             Self::Map(map) => map.as_ref(),
             Self::Memory(cow) => cow.as_ref(),
