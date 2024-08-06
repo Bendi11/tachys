@@ -1,7 +1,5 @@
 use tiny_skia::{Color, Paint, PathBuilder, Pixmap, PixmapMut, Rect, Shader, Stroke, Transform};
 
-
-
 pub trait PixmapExtensions {
     fn outline_rect(&mut self, rect: Rect, color: Color);
 }

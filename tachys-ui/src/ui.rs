@@ -1,12 +1,14 @@
+use std::marker::PhantomData;
+
 use tiny_skia::{PixmapMut, Rect};
 
-mod font;
-mod ext;
 mod context;
+mod ext;
+mod font;
 
 pub use ext::PixmapExtensions;
 
-pub use context::{Ui, LayoutCtx, PaintCtx};
+pub use context::{LayoutCtx, PaintCtx, Ui};
 use winit::event_loop::EventLoop;
 
 use font::FontStorage;
@@ -17,7 +19,7 @@ pub fn run() {
         Ok(ev) => ev,
         Err(e) => {
             log::error!("Failed to create event loop: {e}");
-            return
+            return;
         }
     };
 
@@ -30,9 +32,7 @@ pub fn run() {
     }
 }
 
-pub enum UiEvent {
-
-}
+pub enum UiEvent {}
 
 pub trait Element {
     fn layout(&mut self, ctx: LayoutCtx<'_>) -> Rect;
@@ -42,8 +42,5 @@ pub trait Element {
     fn event(&mut self, event: UiEvent);
 }
 
-
 #[derive(Debug, thiserror::Error)]
-pub enum PaintError {
-    
-}
+pub enum PaintError {}

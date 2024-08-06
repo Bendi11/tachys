@@ -1,7 +1,13 @@
 use std::{cell::OnceCell, marker::PhantomData, num::NonZero, sync::Arc};
 
 use tiny_skia::{Pixmap, PixmapMut, Rect};
-use winit::{application::ApplicationHandler, dpi::PhysicalSize, event::WindowEvent, event_loop::ActiveEventLoop, window::{Window, WindowAttributes}};
+use winit::{
+    application::ApplicationHandler,
+    dpi::PhysicalSize,
+    event::WindowEvent,
+    event_loop::ActiveEventLoop,
+    window::{Window, WindowAttributes},
+};
 
 use crate::ui::font::{EditorFonts, FontStorage};
 
@@ -12,7 +18,6 @@ struct RenderData {
     surface: softbuffer::Surface<Arc<Window>, Arc<Window>>,
     pixmap: Pixmap,
 }
-
 
 /// Top-level structure containing all UI state
 pub struct Ui<'s> {
@@ -36,7 +41,7 @@ impl RenderData {
     pub fn pixmap_mut(&mut self) -> PixmapMut<'_> {
         self.pixmap.as_mut()
     }
-    
+
     /// Flush the tiny_skia pixel buffer to the physical window, displaying any draw changes that
     /// have occurred onscreen.
     pub fn flush(&mut self) -> Result<(), UiError> {
@@ -58,15 +63,14 @@ impl RenderData {
     /// softbuffer display buffers and tiny_skia pixmap for the given window, returning an error if
     /// any resources could not be created
     pub fn create(event_loop: &ActiveEventLoop) -> Result<Self, UiError> {
-        let window = event_loop.create_window(WindowAttributes::default()
-            .with_title("Tachys".to_owned())
-        )?;
+        let window = event_loop
+            .create_window(WindowAttributes::default().with_title("Tachys".to_owned()))?;
 
         let window = Arc::new(window);
 
         let ctx = softbuffer::Context::new(window.clone())?;
         let surface = softbuffer::Surface::new(&ctx, window.clone())?;
-        
+
         let window_size = window.inner_size();
         let pixmap = Pixmap::new(window_size.width, window_size.height).ok_or(UiError::Pixmap)?;
 
@@ -77,7 +81,7 @@ impl RenderData {
             pixmap,
         })
     }
-    
+
     /// Resize all pixel buffers to fit the given window size.
     /// Note that any UI elements must also be re-laid out in order to scale to the new window
     /// size.
@@ -94,6 +98,7 @@ impl RenderData {
 }
 
 impl<'s> Ui<'s> {
+    /// Create UI context from an immutable reference to the given font storage
     pub fn new(storage: &'s FontStorage) -> Self {
         Self {
             render: OnceCell::default(),
@@ -109,8 +114,8 @@ impl<'s> ApplicationHandler for Ui<'s> {
                 Ok(d) => d,
                 Err(e) => {
                     log::error!("Failed to create render context: {e}");
-                    return
-                },
+                    return;
+                }
             };
 
             let _ = self.render.set(render_data);
@@ -118,22 +123,22 @@ impl<'s> ApplicationHandler for Ui<'s> {
     }
 
     fn window_event(
-            &mut self,
-            event_loop: &ActiveEventLoop,
-            _window_id: winit::window::WindowId,
-            event: WindowEvent,
-        ) {
-        let Some(render) = self.render.get_mut() else { return };
+        &mut self,
+        event_loop: &ActiveEventLoop,
+        _window_id: winit::window::WindowId,
+        event: WindowEvent,
+    ) {
+        let Some(render) = self.render.get_mut() else {
+            return;
+        };
 
         match event {
-            WindowEvent::CloseRequested => {
-                event_loop.exit()
-            },
+            WindowEvent::CloseRequested => event_loop.exit(),
             WindowEvent::Resized(sz) => {
                 if let Err(e) = render.resize(sz) {
                     log::error!("Failed to resize buffers: {e}");
                 }
-            },
+            }
             WindowEvent::RedrawRequested => {
                 if let Err(e) = render.flush() {
                     log::error!("Failed to flush pixmap to screen: {e}");
@@ -143,7 +148,6 @@ impl<'s> ApplicationHandler for Ui<'s> {
         }
     }
 }
-
 
 #[derive(Debug, thiserror::Error)]
 pub enum UiError {

@@ -43,12 +43,9 @@ impl<'s> EditorFonts<'s> {
             loaded: Default::default(),
         }
     }
-    
+
     /// Open and load an opentype font from the given path
-    pub fn open<P: AsRef<std::path::Path>>(
-        &mut self,
-        path: P,
-    ) -> Result<FontId, FontError> {
+    pub fn open<P: AsRef<std::path::Path>>(&mut self, path: P) -> Result<FontId, FontError> {
         let buf = self.storage.load(path)?;
         self.load(buf)
     }
@@ -58,11 +55,8 @@ impl<'s> EditorFonts<'s> {
     pub fn load(&mut self, buf: &'s [u8]) -> Result<FontId, FontError> {
         let font = EditorFont::new(buf)?;
         let stored = self.loaded.iter().find_map(|(k, v)| {
-            (v.data.attr == font.data.attr
-                && v.data
-                    .family
-                    .eq_ignore_ascii_case(&font.data.family))
-            .then_some(k)
+            (v.data.attr == font.data.attr && v.data.family.eq_ignore_ascii_case(&font.data.family))
+                .then_some(k)
         });
         if let Some(stored) = stored {
             return Ok(stored);
@@ -117,12 +111,10 @@ impl<'s> EditorFont<'s> {
     pub fn glyph(&mut self, spec: Glyph) -> Result<&RenderedGlyph, FontError> {
         match self.glyph_cache.entry(spec) {
             hash_map::Entry::Occupied(occ) => Ok(occ.into_mut()),
-            hash_map::Entry::Vacant(vacant) => {
-                Ok(vacant.insert(self.data.render_glyph(spec)?))
-            }
+            hash_map::Entry::Vacant(vacant) => Ok(vacant.insert(self.data.render_glyph(spec)?)),
         }
     }
-    
+
     /// Get the font family name of this font
     pub fn family(&self) -> &str {
         self.data.family()

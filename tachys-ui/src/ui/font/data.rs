@@ -85,19 +85,19 @@ impl<'s> FontDrawData<'s> {
             Some(path) => {
                 let bounds = match metric.bounds(id) {
                     Some(metric_bound) => Rect::from_ltrb(
-                            metric_bound.x_min,
-                            metric_bound.y_min,
-                            metric_bound.x_max,
-                            metric_bound.y_max,
-                        )
-                        .ok_or(FontError::InvalidBounds)?,
-                    None => path.bounds()
+                        metric_bound.x_min,
+                        metric_bound.y_min,
+                        metric_bound.x_max,
+                        metric_bound.y_max,
+                    )
+                    .ok_or(FontError::InvalidBounds)?,
+                    None => path.bounds(),
                 };
 
                 let pos = Point::from_xy(bounds.left(), size - bounds.bottom());
 
                 let mut map = Pixmap::new(
-                    bounds.width()  as u32 + AA_PADDING,
+                    bounds.width() as u32 + AA_PADDING,
                     bounds.height() as u32 + AA_PADDING,
                 )
                 .ok_or(FontError::InvalidBounds)?;
@@ -112,7 +112,7 @@ impl<'s> FontDrawData<'s> {
                     FillRule::EvenOdd,
                     Transform::from_translate(
                         -bounds.left() + (AA_PADDING / 2) as f32,
-                        -bounds.top()  - (AA_PADDING / 2) as f32,
+                        -bounds.top() - (AA_PADDING / 2) as f32,
                     )
                     .post_scale(1., -1.)
                     .post_translate(0., bounds.height()),
