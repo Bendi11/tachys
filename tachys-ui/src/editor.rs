@@ -1,7 +1,7 @@
 use tiny_skia::{Color, PixmapPaint, Point, Rect, Transform};
 use winit::event::{ElementState, WindowEvent};
 
-use crate::ui::{element::Element, font::Glyph, LayoutCtx, PaintCtx, PixmapExtensions, Ui, UiError};
+use crate::ui::{element::Element, font::Glyph, LayoutCtx, PaintCtx, PixmapExtensions, UiContext, UiError};
 
 
 #[derive(Default,)]
@@ -11,11 +11,11 @@ pub struct Editor {
 }
 
 impl Element for Editor {
-    fn layout(&mut self, _ui: &Ui<'_>, ctx: LayoutCtx) -> Result<Rect, UiError> {
+    fn layout(&mut self, _ui: &UiContext<'_>, ctx: LayoutCtx) -> Result<Rect, UiError> {
         Ok(ctx.available())
     }
 
-    fn paint(&mut self, ui: &mut Ui<'_>, mut ctx: PaintCtx<'_>) -> Result<(), UiError> {
+    fn paint(&mut self, ui: &mut UiContext<'_>, mut ctx: PaintCtx<'_>) -> Result<(), UiError> {
         let pixmap = ctx.pixmap();
         
         let font_id = ui.fonts_mut().search("DejaVu Sans", None).next().unwrap();
@@ -52,14 +52,13 @@ impl Element for Editor {
         Ok(())
     }
 
-    fn event(&mut self, ui: &mut Ui<'_>, event: winit::event::WindowEvent) -> Result<(), UiError> {
+    fn event(&mut self, ui: &mut UiContext<'_>, event: winit::event::WindowEvent) -> Result<(), UiError> {
         match event {
             WindowEvent::KeyboardInput { device_id: _, event, is_synthetic: _ } => {
                 if event.state == ElementState::Pressed {
                     if let Some(text) = event.text {
                         self.edit.insert_str(self.cursor, text.as_str());
                         self.cursor += 1;
-                        ui.request_redraw();
                     }
                 }
 

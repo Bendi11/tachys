@@ -1,19 +1,20 @@
 mod data;
 mod store;
 
-use std::collections::{hash_map, HashMap};
-
+use dashmap::DashMap;
 use data::FontDrawData;
 use skrifa::attribute::Attributes;
 use slotmap::SlotMap;
-pub use store::FontStorage;
 use tiny_skia::{Pixmap, Point};
+
+pub use store::FontStorage;
+
 
 /// All state required to render and position glyphs from a font, including glyph cache for
 /// efficient rendering
 pub struct UiFont<'s> {
     data: FontDrawData<'s>,
-    glyph_cache: HashMap<Glyph, RenderedGlyph>,
+    glyph_cache: DashMap<Glyph, RenderedGlyph>,
 }
 
 /// Container of loaded fonts for the editor, enabling higher-level font loading and searching by
@@ -105,15 +106,15 @@ impl<'s> UiFont<'s> {
     pub fn new(buf: &'s [u8]) -> Result<Self, FontError> {
         Ok(Self {
             data: FontDrawData::new(buf)?,
-            glyph_cache: HashMap::new(),
+            glyph_cache: DashMap::new(),
         })
     }
 
     /// Return the cached glyph for the given specifier or rasterize and return it
-    pub fn glyph(&mut self, spec: Glyph) -> Result<&RenderedGlyph, FontError> {
+    pub fn glyph(&self, spec: Glyph) -> Result<dashmap::mapref::one::Ref<'_, Glyph, RenderedGlyph>, FontError> {
         match self.glyph_cache.entry(spec) {
-            hash_map::Entry::Occupied(occ) => Ok(occ.into_mut()),
-            hash_map::Entry::Vacant(vacant) => Ok(vacant.insert(self.data.render_glyph(spec)?)),
+            dashmap::Entry::Occupied(occ) => Ok(occ.into_ref().downgrade()),
+            dashmap::Entry::Vacant(vacant) => Ok(vacant.insert(self.data.render_glyph(spec)?).downgrade()),
         }
     }
 

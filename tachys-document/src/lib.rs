@@ -1,8 +1,4 @@
 mod gap;
+pub mod rt;
 
-pub enum DocumentNode {
-    Header {
-        level: u8,
-        text: String,
-    }
-}
+

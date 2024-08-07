@@ -27,6 +27,7 @@ impl log::Log for Logger {
 
 static LOG: Logger = Logger;
 
+
 fn main() {
     log::set_max_level(log::LevelFilter::Info);
     if let Err(e) = log::set_logger(&LOG) {

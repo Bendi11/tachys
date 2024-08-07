@@ -11,7 +11,7 @@ pub mod font;
 
 pub mod element;
 
-pub use context::{LayoutCtx, PaintCtx};
+pub use context::{UiContext, LayoutCtx, PaintCtx};
 pub use ext::PixmapExtensions;
 
 use crate::editor::Editor;
@@ -23,20 +23,13 @@ use crate::editor::Editor;
 /// RGBA format that tiny_skia routines can render to.
 struct RenderData {
     window: Arc<Window>,
-    ctx: softbuffer::Context<Arc<Window>>,
     surface: softbuffer::Surface<Arc<Window>, Arc<Window>>,
     pixmap: Pixmap,
 }
 
-/// Top-level structure containing all UI state.
-pub struct Ui<'s> {
-    fonts: Fonts<'s>,
-    redraw: bool,
-}
-
 struct UiHandler<'s> {
     render: OnceCell<RenderData>,
-    ui: Ui<'s>,
+    ui: UiContext<'s>,
     root: Editor,
 }
 
@@ -54,7 +47,7 @@ pub fn run() {
 
     let mut ui = UiHandler {
         render: OnceCell::default(),
-        ui: Ui::new(&storage),
+        ui: UiContext::new(&storage),
         root: Default::default()
     };
 
@@ -105,7 +98,6 @@ impl RenderData {
 
         Ok(Self {
             window,
-            ctx,
             surface,
             pixmap,
         })
@@ -123,28 +115,6 @@ impl RenderData {
         self.pixmap = Pixmap::new(width.into(), height.into()).ok_or(UiError::Pixmap)?;
 
         Ok(())
-    }
-}
-
-impl<'s> Ui<'s> {
-    /// Create UI context from an immutable reference to the given font storage
-    pub fn new(storage: &'s FontStorage) -> Self {
-        Self {
-            fonts: Fonts::new(storage),
-            redraw: false,
-        }
-    }
-
-    pub fn request_redraw(&mut self) {
-        self.redraw = true;
-    }
-
-    pub fn fonts(&self) -> &Fonts<'s> {
-        &self.fonts
-    }
-
-    pub fn fonts_mut(&mut self) -> &mut Fonts<'s> {
-        &mut self.fonts
     }
 }
 
@@ -200,10 +170,6 @@ impl<'s> ApplicationHandler for UiHandler<'s> {
             },
             e => {
                 root.event(ui, e).unwrap();
-                if ui.redraw {
-                    render.window.request_redraw();
-                    ui.redraw = false;
-                }
             },
         }
     }

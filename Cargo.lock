@@ -329,6 +329,20 @@ dependencies = [
 ]
 
 [[package]]
+name = "dashmap"
+version = "6.0.1"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "804c8821570c3f8b70230c2ba75ffa5c0f9a4189b9a432b6656c536712acae28"
+dependencies = [
+ "cfg-if",
+ "crossbeam-utils",
+ "hashbrown",
+ "lock_api",
+ "once_cell",
+ "parking_lot_core",
+]
+
+[[package]]
 name = "dirs-2"
 version = "3.0.1"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -551,7 +565,7 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "78d408a22389be01e56d8083e6a53bfd6226e392d2bd9661196a426be36e165e"
 dependencies = [
  "ahash",
- "dashmap",
+ "dashmap 5.5.3",
  "hashbrown",
  "once_cell",
 ]
@@ -1378,6 +1392,7 @@ dependencies = [
 name = "tachys-ui"
 version = "0.1.0"
 dependencies = [
+ "dashmap 6.0.1",
  "dirs-2",
  "log",
  "memmap2",

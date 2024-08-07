@@ -11,6 +11,7 @@ skrifa = "0.20"
 
 slotmap = "1.0"
 once_map = "0.4"
+dashmap = "6.0"
 
 
 log = { version = "0.4", features = ["release_max_level_trace", "max_level_trace"] }
